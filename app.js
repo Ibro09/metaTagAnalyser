@@ -86,6 +86,28 @@ app.post("/analyze", async (req, res) => {
   }
 });
 
+app.get("/analyze", async (req, res) => {
+  try {
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+
+    await page.goto('https://ibroport.netlify.app');
+
+    // Wait for network idle to ensure page has fully loaded (adjust the options if needed)
+    await page.waitForLoadState("networkidle");
+
+    const imageAltTexts = await page.$$eval("img", imgs =>
+      imgs.map(img => img.getAttribute("alt")),
+    );
+
+    await browser.close();
+
+    res.json({ imageAltTexts });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "An error occurred" });
+  }
+});
 
 
 
