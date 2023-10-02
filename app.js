@@ -2,14 +2,16 @@ const path = require("path");
 const express = require("express");
 const axios = require("axios");
 const cheerio = require("cheerio");
-const puppeteer = require("puppeteer");
+// const puppeteer = require("puppeteer");
+const { chromium } = require("playwright");
 
+ 
 // const cors = require("cors"); // Import the cors middleware
 
 const app = express();
 
 // Serve static files from the "public" directory
-
+app.use(express.static(path.join(__dirname, "client")));
 
 app.use(express.json());
 
@@ -62,26 +64,28 @@ app.post("/", async (req, res) => {
 
 
 app.post("/analyze", async (req, res) => {
-  console.log(req.body);
-    try {
-    const browser = await puppeteer.launch({
-      headless: "new", // Use the new Headless mode
-    });    const page = await browser.newPage();
+  try {
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
 
-    await page.goto(req.body.url, { waitUntil: "networkidle0" });
+    await page.goto(req.body.url);
 
-    const imageElements = await page.$$eval("img", imgs =>
+    // Wait for network idle to ensure page has fully loaded (adjust the options if needed)
+    await page.waitForLoadState("networkidle");
+
+    const imageAltTexts = await page.$$eval("img", imgs =>
       imgs.map(img => img.getAttribute("alt")),
     );
 
     await browser.close();
 
-    res.json({ imageAltTexts: imageElements });
-    } catch (error) {
-      console.error("Error:", error);
-    }
- 
+    res.json({ imageAltTexts });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "An error occurred" });
+  }
 });
+
 
 
 
